@@ -48,6 +48,9 @@ class relu_t:
 
     def backward(self, dh_lp1):
         return dh_lp1 * (self.h_l > 0)
+    
+    def zero_grad(self):
+        pass
 
 
 class softmax_cross_entropy_t:
@@ -92,11 +95,18 @@ class softmax_cross_entropy_t:
         dh_l[np.arange(len(self.y)), self.y] -= 1
         dh_l /= len(self.y)  # Average over the batch size
         return dh_l
+    
+    def zero_grad(self):
+        pass
 
 
 # Compare with PyTorch
 if __name__ == "__main__":
     
+    ## PyTorch tests
+
+    print("Running PyTorch tests for validation...")
+
     import torch
     import torch.nn as nn
     import torch.optim as optim
@@ -180,8 +190,99 @@ if __name__ == "__main__":
         print("Loss difference (Softmax Cross Entropy):", np.abs(ell_np - loss_torch))
         print("Error difference (Softmax Cross Entropy):", np.abs(error_np - (np.mean(np.argmax(softmax_out_np, axis=1) != y_np))))
 
-    # Run tests
     test_linear()
     test_relu()
     test_softmax_cross_entropy()
+
+    ## Finite difference tests
+
+    print("\nRunning finite difference tests for validation...")
+
+    def finite_difference_weights(layer, input_vector, output_gradient, epsilon=1e-5):
+        approx_gradients = np.zeros_like(layer.W)
+        for i in range(layer.W.shape[0]):
+            for j in range(layer.W.shape[1]):
+                original_weight = layer.W[i, j]
+
+                # Perturb weights positively and negatively
+                layer.W[i, j] = original_weight + epsilon
+                positive_out = layer.forward(input_vector)
+                layer.W[i, j] = original_weight - epsilon
+                negative_out = layer.forward(input_vector)
+
+                # Reset weight
+                layer.W[i, j] = original_weight
+                
+                # Compute gradient
+                approx_gradients[i, j] = (np.dot(output_gradient, (positive_out - negative_out).T)) / (2 * epsilon)
+        
+        return approx_gradients
+
+    # Test the linear layer
+    print("\nTesting linear layer finite differences...")
+
+    np.random.seed(42)
+    layer = linear_t(alpha=784, c=10)
+    input_vector = np.random.randn(1, 784)
+    output_gradient = np.random.randn(1, 10)
+
+    # Forward and backward pass
+    predicted_output = layer.forward(input_vector)
+    layer.backward(output_gradient)
+
+    # Compute approximated gradients
+    approx_dW = finite_difference_weights(layer, input_vector, output_gradient)
+
+    # Compare the gradients
+    print("Approximated dW:", approx_dW)
+    print("Backprop dW:", layer.dW)
+    print("Difference in dW:", np.linalg.norm(approx_dW - layer.dW))
+
+    def check_gradient(layer, x, y=None, epsilon=1e-6):
+        num_grad = np.zeros_like(x)
+        for i in range(x.shape[0]):
+            for j in range(x.shape[1]):
+                x_plus, x_minus = x.copy(), x.copy()
+                x_plus[i, j] += epsilon
+                x_minus[i, j] -= epsilon
+                
+                # Check if the layer is expected to be used with labels
+                if y is not None:
+                    # With labels, loss layer
+                    _, loss_plus, _ = layer.forward(x_plus, y)
+                    _, loss_minus, _ = layer.forward(x_minus, y)
+                    # Numerical gradient based on loss
+                    num_grad[i, j] = (loss_plus - loss_minus) / (2 * epsilon)
+                else:
+                    # No labels, activation layer
+                    out_plus = layer.forward(x_plus)
+                    out_minus = layer.forward(x_minus)
+                    # Numerical gradient based on output difference
+                    num_grad[i, j] = np.sum(out_plus - out_minus) / (2 * epsilon)
+
+        # Analytical gradient via backpropagation
+        if y is not None:
+            _, _, _ = layer.forward(x, y)
+            grad = layer.backward(np.ones_like(x), y)
+        else:
+            layer.forward(x)
+            grad = layer.backward(np.ones_like(x))
+
+        # Compare gradients
+        diff = np.linalg.norm(num_grad - grad) / (np.linalg.norm(num_grad) + np.linalg.norm(grad))
+        return num_grad, grad, diff
     
+    # Test the ReLU and Softmax Cross Entropy layers
+    print("\nTesting ReLU and Softmax Cross Entropy layer finite differences...")
+
+    relu_layer = relu_t()
+    x_relu = np.random.randn(2, 3)
+    num_grad_relu, grad_relu, diff_relu = check_gradient(relu_layer, x_relu)
+
+    softmax_layer = softmax_cross_entropy_t()
+    x_softmax = np.random.randn(3, 5)
+    y_softmax = np.array([1, 0, 4])
+    num_grad_softmax, grad_softmax, diff_softmax = check_gradient(softmax_layer, x_softmax, y_softmax)
+
+    print("ReLU Layer Gradient Check, Difference:", diff_relu)
+    print("Softmax Cross Entropy Layer Gradient Check, Difference:", diff_softmax)
