@@ -4,9 +4,11 @@ import numpy as np
 class linear_t:
     def __init__(self, alpha=784, c=10):
         # initialize to appropriate sizes, fill with Gaussian entires
-        # normalize to make the Frobenius norm of w, b equal to 1
-        self.W = np.random.randn(c, alpha)
-        self.b = np.random.randn(c)
+        # normalize to make the Frobenius norm of W, b equal to 1
+        # self.W = np.random.randn(c, alpha)
+        # self.b = np.random.randn(c)
+        self.W = np.ones((c, alpha))
+        self.b = np.ones((c))
         # Normalize w and b
         self.W /= np.linalg.norm(self.W, 'fro')
         self.b /= np.linalg.norm(self.b)
@@ -15,6 +17,11 @@ class linear_t:
         self.h_l = None
 
     def forward(self, h_l):
+        # Check input shape
+        if len(h_l.shape) == 1:
+            h_l = h_l.reshape(1, -1)
+        assert h_l.shape[1] == self.W.shape[1], "Input shape does not match the weight matrix shape"
+
         h_lp1 = h_l @ self.W.T + self.b
         # cache h_l in forward because we will need it to compute
         # dw in backward
@@ -22,8 +29,13 @@ class linear_t:
         return h_lp1
 
     def backward(self, dh_lp1):
+        # Check input shape
+        if len(dh_lp1.shape) == 1:
+            dh_lp1 = dh_lp1.reshape(1, -1)
+        assert dh_lp1.shape[1] == self.W.shape[0], "Output gradient shape does not match the weight matrix shape"
+
         dh_l = dh_lp1 @ self.W
-        dW = dh_lp1.reshape(-1, 1) @ self.h_l.reshape(1, -1)
+        dW = dh_lp1.T @ self.h_l
         db = np.sum(dh_lp1, axis=0)
         self.dW, self.db = dW, db
         # notice that there is no need to cache dh_l
@@ -68,9 +80,16 @@ class softmax_cross_entropy_t:
         self.y = y
         if len(h_l.shape) == 1:
             h_l = h_l.reshape(1, -1)
-        self.h_lp1 = np.exp(h_l) / np.sum(np.exp(h_l), axis=1, keepdims=True)
+        assert h_l.shape[0] == len(y), "Input shape does not match the number of labels"
+
+        # Subtract the max for numerical stability
+        shifted_h_l = h_l - np.max(h_l, axis=1, keepdims=True)
+        self.h_lp1 = np.exp(shifted_h_l) / np.sum(np.exp(shifted_h_l), axis=1, keepdims=True)
+        # self.h_lp1 = np.exp(h_l) / np.sum(np.exp(h_l), axis=1, keepdims=True)
+
         if len(self.h_lp1.shape) == 1:
             self.h_lp1 = self.h_lp1.reshape(1, -1)
+            
         # compute average loss ell(y) over a mini-batch
         # need to consider the case when there is only one sample
         # i.e. the shape of y is (1,), self.h_lp1 should be reshaped
@@ -116,7 +135,7 @@ if __name__ == "__main__":
         # Define input parameters
         alpha = 784  # Input dimension
         c = 10       # Output dimension
-        batch_size = 5
+        batch_size = 32
 
         # Create an instance of your class
         linear_np = linear_t(alpha=alpha, c=c)
@@ -136,7 +155,7 @@ if __name__ == "__main__":
             linear_torch.bias.copy_(torch.tensor(linear_np.b))
 
         # Forward pass using PyTorch
-        h_l_torch = torch.tensor(h_l_np, dtype=torch.float32)
+        h_l_torch = torch.tensor(h_l_np, dtype=torch.float32)  # (32, 784)
         out_torch = linear_torch(h_l_torch).detach().numpy()
 
         # Compare outputs
@@ -147,7 +166,7 @@ if __name__ == "__main__":
         relu_np = relu_t()
 
         # Generate random input
-        h_l_np = np.random.randn(5, 10)
+        h_l_np = np.random.randn(32, 10)
 
         # Forward pass using your ReLU
         out_np = relu_np.forward(h_l_np)
@@ -164,7 +183,7 @@ if __name__ == "__main__":
     # Your numpy-based softmax cross-entropy test function
     def test_softmax_cross_entropy():
         # Define input parameters
-        batch_size = 5
+        batch_size = 32
         num_classes = 10
 
         softmax_np = softmax_cross_entropy_t()
