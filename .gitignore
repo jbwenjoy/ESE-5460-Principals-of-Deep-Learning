@@ -3,3 +3,4 @@
 *.pkl
 hw1/MNIST_data
 hw1/prob3_mnist_data
+__pycache__
