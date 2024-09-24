@@ -5,10 +5,8 @@ class linear_t:
     def __init__(self, alpha=784, c=10):
         # initialize to appropriate sizes, fill with Gaussian entires
         # normalize to make the Frobenius norm of W, b equal to 1
-        # self.W = np.random.randn(c, alpha)
-        # self.b = np.random.randn(c)
-        self.W = np.ones((c, alpha))
-        self.b = np.ones((c))
+        self.W = np.random.randn(c, alpha)
+        self.b = np.random.randn(c)
         # Normalize w and b
         self.W /= np.linalg.norm(self.W, 'fro')
         self.b /= np.linalg.norm(self.b)
@@ -94,7 +92,9 @@ class softmax_cross_entropy_t:
         # need to consider the case when there is only one sample
         # i.e. the shape of y is (1,), self.h_lp1 should be reshaped
         # to (1, c) to avoid broadcasting issues
-        ell = -np.sum(np.log(self.h_lp1[np.arange(len(y)), y])) / len(y)
+        # Add epsilon to prevent log(0)
+        epsilon = 1e-15
+        ell = -np.sum(np.log(self.h_lp1[np.arange(len(y)), y] + epsilon)) / len(y)
         y = np.asarray(y).reshape(-1)  # Ensure y is a 1D array
         error = np.mean(np.argmax(self.h_lp1, axis=1) != y)
         return self.h_lp1, ell, error
