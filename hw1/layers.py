@@ -3,13 +3,9 @@ import numpy as np
 
 class linear_t:
     def __init__(self, alpha=784, c=10):
-        # initialize to appropriate sizes, fill with Gaussian entires
-        # normalize to make the Frobenius norm of W, b equal to 1
-        self.W = np.random.randn(c, alpha)
-        self.b = np.random.randn(c)
-        # Normalize w and b
-        self.W /= np.linalg.norm(self.W, 'fro')
-        self.b /= np.linalg.norm(self.b)
+        # Initialize weights with He initialization
+        self.W = np.random.randn(c, alpha) * np.sqrt(2 / alpha)
+        self.b = np.zeros(c)  # Initialize biases to zero
         self.dW = np.zeros_like(self.W)
         self.db = np.zeros_like(self.b)
         self.h_l = None
