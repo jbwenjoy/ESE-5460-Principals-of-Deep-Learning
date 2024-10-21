@@ -126,23 +126,22 @@ if __name__ == "__main__":
     import torch.nn as nn
     import torch.optim as optim
 
-    # Your numpy-based linear layer test function
+    # Numpy-based linear layer test function
     def test_linear():
         # Define input parameters
         alpha = 784  # Input dimension
         c = 10       # Output dimension
         batch_size = 32
 
-        # Create an instance of your class
         linear_np = linear_t(alpha=alpha, c=c)
 
-        # Generate random input
+        # Random input
         h_l_np = np.random.randn(batch_size, alpha)
 
-        # Forward pass using your implementation
+        # Forward pass
         out_np = linear_np.forward(h_l_np)
 
-        # Now let's do the same with PyTorch's Linear layer
+        # Do the same with PyTorch's Linear layer
         linear_torch = nn.Linear(alpha, c)
         
         # Copy weights and biases from numpy to torch
@@ -157,17 +156,17 @@ if __name__ == "__main__":
         # Compare outputs
         print("Output difference (Linear):", np.max(np.abs(out_np - out_torch)))
 
-    # Your numpy-based ReLU test function
+    # Numpy-based ReLU test function
     def test_relu():
         relu_np = relu_t()
 
         # Generate random input
         h_l_np = np.random.randn(32, 10)
 
-        # Forward pass using your ReLU
+        # Forward pass
         out_np = relu_np.forward(h_l_np)
 
-        # Now with PyTorch
+        # PyTorch
         relu_torch = nn.ReLU()
 
         h_l_torch = torch.tensor(h_l_np, dtype=torch.float32)
@@ -176,7 +175,7 @@ if __name__ == "__main__":
         # Compare outputs
         print("Output difference (ReLU):", np.max(np.abs(out_np - out_torch)))
 
-    # Your numpy-based softmax cross-entropy test function
+    # Numpy-based softmax cross-entropy test function
     def test_softmax_cross_entropy():
         # Define input parameters
         batch_size = 32
@@ -188,10 +187,10 @@ if __name__ == "__main__":
         h_l_np = np.random.randn(batch_size, num_classes)
         y_np = np.random.randint(0, num_classes, size=batch_size)
 
-        # Forward pass using your softmax cross entropy
+        # Forward pass
         softmax_out_np, ell_np, error_np = softmax_np.forward(h_l_np, y_np)
 
-        # Now with PyTorch
+        # PyTorch
         loss_fn_torch = nn.CrossEntropyLoss()
 
         h_l_torch = torch.tensor(h_l_np, dtype=torch.float32)
