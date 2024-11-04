@@ -1,7 +1,11 @@
 .venv*
 .idea
 *.pkl
+*.png
+pg*.txt
+*.pth
 hw1/MNIST_data
 hw1/prob3_mnist_data
+hw2/data
+hw2/runs
 __pycache__
-.png
