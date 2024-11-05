@@ -165,16 +165,16 @@ from tqdm import tqdm
 
 # Generate sequences of 32 characters and the next 32 after stride length as the target
 def generate_sequences(
-    text, char_to_index, input_seq_len=32, target_seq_len=32, stride=16
+    text, char_to_index, input_seq_len=32, target_seq_len=32, stride=16, target_offset=1
 ):
     input_sequences = []
     target_sequences = []
 
-    prevent_index_overflow = max(input_seq_len, target_seq_len + stride)
+    prevent_index_overflow = max(input_seq_len, target_seq_len + target_offset)
 
     for i in tqdm(range(0, len(text) - prevent_index_overflow, stride), desc="Generating sequences"):
         input_seq = text[i : i + input_seq_len]
-        target_seq = text[i + stride : i + target_seq_len + stride]
+        target_seq = text[i + target_offset : i + target_seq_len + target_offset]
 
         # Convert to one-hot encoded vectors
         input_seq_encoded = [
@@ -462,8 +462,10 @@ for i in range(len(temp_test_input)):
   temp_test_input_char.append(index_to_char[temp_test_input[i]])
 for i in range(len(temp_test_target)):
   temp_test_target_char.append(index_to_char[temp_test_target[i]])
-print(temp_test_input_char)
-print(temp_test_target_char)
+print(">Input:")
+print(''.join(temp_test_input_char))
+print(">Target:")
+print(''.join(temp_test_target_char))
 
 
 # In[23]:
