@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 dir_root = '.'
@@ -14,7 +14,7 @@ if 'google.colab' in str(get_ipython()):
 print(dir_root)
 
 
-# In[2]:
+# In[ ]:
 
 
 import requests
@@ -70,7 +70,7 @@ print(f'Vocabulary size for each text: {vocab_size_list}')
 print(f'Unique characters for each text: {unique_chars_list}')
 
 
-# In[3]:
+# In[ ]:
 
 
 print(text_list[0][:100])
@@ -97,7 +97,7 @@ print(text_list[2][:100])
 # print(f'Extra characters in local text: {extra_chars_in_local}')
 
 
-# In[5]:
+# In[ ]:
 
 
 # Create a dictionary to map characters to indices and vice-versa
@@ -113,7 +113,7 @@ print(f"Character to index mapping for first text: {char_to_index}")
 print(f"Index to character mapping for first text: {index_to_char}")
 
 
-# In[6]:
+# In[ ]:
 
 
 import numpy as np
@@ -129,7 +129,7 @@ one_hot_vector = one_hot_encode(test_char_a, char_to_index, vocab_size)
 print(f"One-hot encoding for '{test_char_a}': {one_hot_vector}")
 
 
-# In[7]:
+# In[ ]:
 
 
 # Sample a short portion from the first book
@@ -137,7 +137,7 @@ sample_text_500 = text_list[0][60000:60500]
 print(sample_text_500)
 
 
-# In[8]:
+# In[7]:
 
 
 from tqdm import tqdm
@@ -190,7 +190,7 @@ def generate_sequences(
     return np.array(input_sequences), np.array(target_sequences)
 
 
-# In[9]:
+# In[ ]:
 
 
 input_seqs, target_seqs = generate_sequences(sample_text_500, char_to_index, input_seq_len=32, target_seq_len=32, stride=2)
@@ -210,7 +210,7 @@ print(">Sample target sequence:")
 print(''.join([index_to_char[np.argmax(char)] for char in sample_target_seq]))
 
 
-# In[10]:
+# In[ ]:
 
 
 import torch
@@ -265,7 +265,7 @@ def repackage_hidden(hidden_layer):
         return tuple(repackage_hidden(v) for v in hidden_layer)
 
 
-# In[11]:
+# In[ ]:
 
 
 USE_ALL_BOOKS = False
@@ -274,7 +274,8 @@ if 'google.colab' in str(get_ipython()):
     USE_ALL_BOOKS = True
 
 sequence_length = 32
-stride = 1
+stride = 24
+target_offset = 1
 
 if USE_ALL_BOOKS:
     # Load text and prepare data
@@ -286,7 +287,7 @@ if USE_ALL_BOOKS:
     vocab_size, unique_chars = count_unique_chars(all_texts)
     char_to_index, index_to_char = create_char_mappings(unique_chars)
     print(f"Vocabulary size: {vocab_size}")
-    input_seqs, target_seqs = generate_sequences(all_texts, char_to_index, input_seq_len=sequence_length, target_seq_len=sequence_length, stride=stride)
+    input_seqs, target_seqs = generate_sequences(all_texts, char_to_index, input_seq_len=sequence_length, target_seq_len=sequence_length, stride=stride, target_offset=target_offset)
 else:
     text = text_list[0]
     # sample only the first 1/100 of the text
@@ -294,7 +295,7 @@ else:
     vocab_size, unique_chars = count_unique_chars(text)
     char_to_index, index_to_char = create_char_mappings(unique_chars)
     print(f"Vocabulary size: {vocab_size}")
-    input_seqs, target_seqs = generate_sequences(text, char_to_index, input_seq_len=sequence_length, target_seq_len=sequence_length, stride=stride)
+    input_seqs, target_seqs = generate_sequences(text, char_to_index, input_seq_len=sequence_length, target_seq_len=sequence_length, stride=stride, target_offset=target_offset)
 
 input_seqs = torch.tensor(input_seqs, dtype=torch.float32).to(device)
 target_seqs = torch.tensor(target_seqs, dtype=torch.long).to(device)
@@ -308,7 +309,7 @@ print("Input seqs shape:", input_seqs.shape)
 print("Target seqs shape:", target_seqs.shape)
 
 
-# In[12]:
+# In[ ]:
 
 
 def escape_sequence(seq):
@@ -348,7 +349,7 @@ for book_idx, text in enumerate(text_list):
             print(f"{escaped_excerpt}")
 
 
-# In[13]:
+# In[12]:
 
 
 from IPython.display import clear_output
@@ -377,7 +378,7 @@ train_loader = DataLoader(dataset=train_dataset, batch_sampler=train_batch_sampl
 val_loader = DataLoader(dataset=val_dataset, batch_sampler=val_batch_sampler)
 
 
-# In[14]:
+# In[ ]:
 
 
 # Initialize model, loss function, and optimizer
@@ -451,7 +452,7 @@ for epoch in tqdm(range(num_epochs), desc="Training"):
     
 
 
-# In[15]:
+# In[ ]:
 
 
 temp_test_input = np.array([73, 62, 66, 67, 20, 41, 58, 51, 61, 73, 56, 66, 67, 62, 66, 67, 61, 73, 61, 67, 64, 72,  8, 37, 62, 52, 72, 45, 73, 40, 67, 73])
@@ -468,7 +469,7 @@ print(">Target:")
 print(''.join(temp_test_target_char))
 
 
-# In[23]:
+# In[ ]:
 
 
 import matplotlib.pyplot as plt
@@ -505,7 +506,7 @@ plt.legend()
 plt.show()
 
 
-# In[17]:
+# In[ ]:
 
 
 # Save the model
@@ -514,11 +515,12 @@ torch.save(model.state_dict(), model_path)
 print(f"Model saved to {model_path}")
 
 
-# In[18]:
+# In[ ]:
 
 
 # Load the model
-model = CharRNN(vocab_size, vocab_size, hidden_size).to(device)
+model_path = f'{dir_root}/char_rnn_model.pth'
+model = CharRNN(vocab_size, vocab_size, hidden_size, rnn_layers, device=device, dropout=dropout).to(device)
 model.load_state_dict(torch.load(model_path))
 model.eval()
 print("Model loaded successfully")
@@ -553,13 +555,26 @@ def generate_text(model, start_text, char_to_index, index_to_char, max_length=10
     return generated_text
 
 
-# In[20]:
+# In[ ]:
 
 
-# Generate text using the trained model
-start_text = 'I never shall forget that night.'
-generated_text = generate_text(model, start_text, char_to_index, index_to_char, max_length=100, temperature=0.3)
-print(generated_text)
+# Define start texts and temperatures
+start_texts = [
+    "I never shall forget th",
+    "Man! What can I say? Mamb",
+    "Will our path converge beneat",
+    "It has been a long day, wi"
+]
+
+temperatures = [0.2, 0.5, 0.7, 1.0]
+
+# Loop through start texts and temperatures
+for i, (start_text, temperature) in enumerate(zip(start_texts, temperatures), 1):
+    generated_text = generate_text(model, start_text, char_to_index, index_to_char, max_length=100, temperature=temperature)
+    print(f">Generating test {i}:\n", generated_text)
+    # Save the generated text to a file
+    with open(f'{dir_root}/generated_text_rnn_{i}.txt', 'w', encoding='utf-8') as file:
+        file.write(generated_text)
 
 
 # In[ ]:

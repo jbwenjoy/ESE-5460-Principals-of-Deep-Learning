@@ -1,6 +1,8 @@
 .venv*
 .idea
 *.pkl
+*.npy
+gen*.txt
 *.png
 pg*.txt
 *.pth
